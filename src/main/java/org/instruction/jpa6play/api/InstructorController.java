@@ -6,8 +6,11 @@ import org.instruction.jpa6play.model.Instructor;
 import org.instruction.jpa6play.service.InstructorService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
+import java.net.URI;
 import java.util.List;
+import java.util.Optional;
 
 @RestController
 @RequestMapping("/api/instructor")
@@ -20,16 +23,18 @@ public class InstructorController {
 
     /**
      * Creates a new Instructor.
-     * Restricted to users with 'ADMIN' or 'STAFF' roles.
      */
     @PostMapping
     public ResponseEntity<InstructorDto> createInstructor(@RequestBody Instructor instructor) {
-        return ResponseEntity.ok(Instructor.toDto(instructorService.createInstructor(instructor)));
+        InstructorDto createdInstructor = Instructor.toDto(instructorService.createInstructor(instructor));
+        URI location = ServletUriComponentsBuilder.fromCurrentRequest()
+                .path("/{name}")
+                .buildAndExpand(createdInstructor.name())
+                .toUri();
+        return ResponseEntity.created(location).body(createdInstructor);
     }
-
     /**
      * Reads a single Instructor by name.
-     * Accessible to any authenticated user with 'ADMIN', 'STAFF', or 'USER' roles.
      */
     @GetMapping("/{name}")
     public ResponseEntity<InstructorDetailDto> getInstructorByName(@PathVariable String name) {
@@ -41,7 +46,6 @@ public class InstructorController {
 
     /**
      * Reads all Instructors.
-     * Accessible to any authenticated user with 'ADMIN', 'STAFF', or 'USER' roles.
      */
     @GetMapping
     public ResponseEntity<List<InstructorDto>> getAllInstructors() {
@@ -50,19 +54,26 @@ public class InstructorController {
 
     /**
      * Updates an existing Instructor.
-     * Restricted to users with 'ADMIN' or 'STAFF' roles.
      */
     @PutMapping("/{name}")
     public ResponseEntity<InstructorDto> updateInstructor(@PathVariable String name, @RequestBody Instructor instructor) {
-        return instructorService.updateInstructor(name, instructor)
-                .map(Instructor::toDto)
-                .map(ResponseEntity::ok)
-                .orElseGet(() -> ResponseEntity.notFound().build());
+        Optional<Instructor> existingInstructor = instructorService.findInstructorByName(name);
+        InstructorDto instructorDto;
+        if (existingInstructor.isPresent()) {
+            instructorDto = Instructor.toDto(instructorService.updateInstructor(name, instructor));
+            return ResponseEntity.ok(instructorDto);
+        } else {
+            instructorDto = Instructor.toDto(instructorService.createInstructor(instructor));
+            URI location = ServletUriComponentsBuilder.fromCurrentRequest()
+                    .path("/{name}")
+                    .buildAndExpand(instructorDto.name())
+                    .toUri();
+            return ResponseEntity.created(location).body(instructorDto);
+        }
     }
 
     /**
      * Deletes an Instructor.
-     * This is a destructive action, so it is restricted to 'ADMIN' users only.
      */
     @DeleteMapping("/{name}")
     public ResponseEntity<Void> deleteInstructor(@PathVariable String name) {

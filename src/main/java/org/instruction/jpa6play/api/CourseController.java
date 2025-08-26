@@ -6,8 +6,11 @@ import org.instruction.jpa6play.model.Course;
 import org.instruction.jpa6play.service.CourseService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
+import java.net.URI;
 import java.util.List;
+import java.util.Optional;
 
 @RestController
 @RequestMapping("/api/course")
@@ -21,7 +24,12 @@ public class CourseController {
     // Create a new Course
     @PostMapping
     public ResponseEntity<CourseDto> createCourse(@RequestBody Course course) {
-        return ResponseEntity.ok(Course.toDto(courseService.createCourse(course)));
+        CourseDto createdCourse = Course.toDto(courseService.createCourse(course));
+        URI location = ServletUriComponentsBuilder.fromCurrentRequest()
+                .path("/{name}")
+                .buildAndExpand(createdCourse.name())
+                .toUri();
+        return ResponseEntity.created(location).body(createdCourse);
     }
 
     // Read a Course by name
@@ -42,10 +50,19 @@ public class CourseController {
     // Update a Course
     @PutMapping("/{name}")
     public ResponseEntity<CourseDto> updateCourse(@PathVariable String name, @RequestBody Course course) {
-        return courseService.updateCourse(name, course)
-                .map(Course::toDto)
-                .map(ResponseEntity::ok)
-                .orElseGet(() -> ResponseEntity.notFound().build());
+        Optional<Course> existingCourse = courseService.findCourseByName(name);
+        CourseDto courseDto;
+        if (existingCourse.isPresent()) {
+            courseDto = Course.toDto(courseService.updateCourse(name, course));
+            return ResponseEntity.ok(courseDto);
+        } else {
+            courseDto = Course.toDto(courseService.createCourse(course));
+            URI location = ServletUriComponentsBuilder.fromCurrentRequest()
+                    .path("/{name}")
+                    .buildAndExpand(courseDto.name())
+                    .toUri();
+            return ResponseEntity.created(location).body(courseDto);
+        }
     }
 
     // Delete a Course

@@ -34,20 +34,20 @@ public class StudentService {
     }
 
     // Update a Student
-    public Optional<Student> updateStudent(String name, Student updatedStudent) {
-        return studentRepository.findStudentByName(name)
+    public Student updateStudent(String name, Student updatedStudent) {
+        return studentRepository.findByName(name)
                 .map(existingStudent -> {
                     existingStudent.setName(updatedStudent.getName());
                     if (updatedStudent.getSchool() != null) {
                         existingStudent.setSchool(updatedStudent.getSchool());
                     }
                     return studentRepository.save(existingStudent);
-                });
+                }).orElseThrow();
     }
 
     // Delete a Student
     public boolean deleteStudent(String name) {
-        return studentRepository.findStudentByName(name)
+        return studentRepository.findByName(name)
                 .map(student -> {
                     studentRepository.delete(student);
                     return true;
@@ -55,4 +55,7 @@ public class StudentService {
                 .orElse(false);
     }
 
+    public Optional<Student> findStudentByName(String name) {
+        return studentRepository.findByName(name);
+    }
 }

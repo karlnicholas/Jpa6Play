@@ -32,7 +32,7 @@ public class CourseService {
         return courseRepository.save(course);
     }
 
-    public Optional<Course> updateCourse(String name, Course updatedCourse) {
+    public Course updateCourse(String name, Course updatedCourse) {
         return courseRepository.findByName(name)
                 .map(existingCourse -> {
                     existingCourse.setName(updatedCourse.getName());
@@ -43,7 +43,7 @@ public class CourseService {
                         existingCourse.setInstructor(updatedCourse.getInstructor());
                     }
                     return courseRepository.save(existingCourse);
-                });
+                }).orElseThrow();
     }
 
     public boolean deleteCourse(String name) {
@@ -57,8 +57,12 @@ public class CourseService {
 
     @Transactional
     public void addStudentToCourse(String studentName, String courseName) {
-        Student student = studentRepository.findStudentByName(studentName).orElseThrow();
+        Student student = studentRepository.findByName(studentName).orElseThrow();
         Course course = courseRepository.findByNameFetchStudents(courseName).orElseThrow();
         course.getStudents().add(student);
+    }
+
+    public Optional<Course> findCourseByName(String name) {
+        return courseRepository.findByName(name);
     }
 }

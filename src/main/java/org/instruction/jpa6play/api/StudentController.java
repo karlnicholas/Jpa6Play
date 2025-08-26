@@ -6,8 +6,11 @@ import org.instruction.jpa6play.model.Student;
 import org.instruction.jpa6play.service.StudentService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
+import java.net.URI;
 import java.util.List;
+import java.util.Optional;
 
 @RestController
 @RequestMapping("/api/student")
@@ -20,16 +23,19 @@ public class StudentController {
 
     /**
      * Creates a new Student.
-     * Restricted to users with 'ADMIN' or 'STAFF' roles.
      */
     @PostMapping
     public ResponseEntity<StudentDto> createStudent(@RequestBody Student student) {
-        return ResponseEntity.ok(Student.toDto(studentService.createStudent(student)));
+        StudentDto createdStudent = Student.toDto(studentService.createStudent(student));
+        URI location = ServletUriComponentsBuilder.fromCurrentRequest()
+                .path("/{name}")
+                .buildAndExpand(createdStudent.name())
+                .toUri();
+        return ResponseEntity.created(location).body(createdStudent);
     }
 
     /**
      * Reads a single Student by name.
-     * Accessible to any authenticated user with 'ADMIN', 'STAFF', or 'USER' roles.
      */
     @GetMapping("/{name}")
     public ResponseEntity<StudentDetailDto> getStudentByName(@PathVariable String name) {
@@ -41,7 +47,6 @@ public class StudentController {
 
     /**
      * Reads all Students.
-     * Accessible to any authenticated user with 'ADMIN', 'STAFF', or 'USER' roles.
      */
     @GetMapping
     public ResponseEntity<List<StudentDto>> getAllStudents() {
@@ -50,19 +55,26 @@ public class StudentController {
 
     /**
      * Updates an existing Student.
-     * Restricted to users with 'ADMIN' or 'STAFF' roles.
      */
     @PutMapping("/{name}")
     public ResponseEntity<StudentDto> updateStudent(@PathVariable String name, @RequestBody Student student) {
-        return studentService.updateStudent(name, student)
-                .map(Student::toDto)
-                .map(ResponseEntity::ok)
-                .orElseGet(() -> ResponseEntity.notFound().build());
+        Optional<Student> existingStudent = studentService.findStudentByName(name);
+        StudentDto studentDto;
+        if (existingStudent.isPresent()) {
+            studentDto = Student.toDto(studentService.updateStudent(name, student));
+            return ResponseEntity.ok(studentDto);
+        } else {
+            studentDto = Student.toDto(studentService.createStudent(student));
+            URI location = ServletUriComponentsBuilder.fromCurrentRequest()
+                    .path("/{name}")
+                    .buildAndExpand(studentDto.name())
+                    .toUri();
+            return ResponseEntity.created(location).body(studentDto);
+        }
     }
 
     /**
      * Deletes a Student.
-     * This is a destructive action, so it is restricted to 'ADMIN' users only.
      */
     @DeleteMapping("/{name}")
     public ResponseEntity<Void> deleteStudent(@PathVariable String name) {

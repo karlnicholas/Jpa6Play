@@ -34,7 +34,7 @@ public class InstructorService {
     }
 
     // Update a Instructor
-    public Optional<Instructor> updateInstructor(String name, Instructor updatedInstructor) {
+    public Instructor updateInstructor(String name, Instructor updatedInstructor) {
         return instructorRepository.findByName(name)
                 .map(existingInstructor -> {
                     existingInstructor.setName(updatedInstructor.getName());
@@ -42,7 +42,7 @@ public class InstructorService {
                         existingInstructor.setSchool(updatedInstructor.getSchool());
                     }
                     return instructorRepository.save(existingInstructor);
-                });
+                }).orElseThrow();
     }
 
     // Delete a Instructor
@@ -55,4 +55,7 @@ public class InstructorService {
                 .orElse(false);
     }
 
+    public Optional<Instructor> findInstructorByName(String name) {
+        return instructorRepository.findByName(name);
+    }
 }

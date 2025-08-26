@@ -7,7 +7,7 @@ import org.springframework.data.jpa.repository.Query;
 import java.util.Optional;
 
 public interface StudentRepository extends JpaRepository<Student, Long> {
-    Optional<Student> findStudentByName(String studentName);
+    Optional<Student> findByName(String studentName);
 
     @Query("SELECT s FROM Student s LEFT JOIN FETCH s.courses  WHERE s.name = :name")
     Optional<Student> findByNameJoinCourses(String name);
